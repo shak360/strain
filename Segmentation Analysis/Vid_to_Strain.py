@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from __future__ import annotations
+
 import cv2
 import numpy as np
 from scipy import signal
@@ -37,16 +39,16 @@ from shutil import copyfile
 from numpy.linalg import norm
 from scipy.signal import lfilter
 
-def show(frame):
+def show(frame: np.ndarray) -> None:
     cv2.imshow("test", frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def plot_point(frame,x,y,color=(0,255,0),radius = 0):
+def plot_point(frame: np.ndarray, x: int, y: int, color: tuple[int, int, int] = (0,255,0), radius: int = 0) -> np.ndarray:
     thickness = -1
     return cv2.circle(frame, (x,y), radius, color, thickness)
 
-def plot_line(frame,p1,p2,color=(0,191,255),thickness = 1):
+def plot_line(frame: np.ndarray, p1: np.ndarray | list[int], p2: np.ndarray | list[int], color: tuple[int, int, int] = (0,191,255), thickness: int = 1) -> np.ndarray:
     return cv2.line(frame, (p1[0],p1[1]), (p2[0],p2[1]), color, thickness)
 
 # Gets all the contours for certain image
@@ -86,7 +88,7 @@ def loadvideo(filename: str) -> np.ndarray:
     v = v.transpose((3, 0, 1, 2))
 
     return v
-def savevideo(filename: str, array: np.ndarray, fps: typing.Union[float, int] = 1):
+def savevideo(filename: str, array: np.ndarray, fps: typing.Union[float, int] = 1) -> None:
     """Saves a video to a file.
 
     Args:
@@ -109,10 +111,10 @@ def savevideo(filename: str, array: np.ndarray, fps: typing.Union[float, int] = 
         out.write(array[:, i, :, :].transpose((1, 2, 0)))
 
 
-def dist(x1,x2):
+def dist(x1: np.ndarray, x2: np.ndarray) -> float:
     return norm(x1-x2)
 
-def select_contours(a):
+def select_contours(a: typing.Sequence[np.ndarray]) -> np.ndarray:
     """
     This function selects the left ventricle from the set of contours
     It does this by selecting the contour with the mean position furthest from the bottom left hand corner
@@ -128,7 +130,7 @@ def select_contours(a):
                 previous_dist = distance
     return a[previous_index]
 
-def obtain_lowest_points(img,thresh):
+def obtain_lowest_points(img: np.ndarray, thresh: np.ndarray) -> tuple[np.ndarray, list[list[int]]]:
     """
     This function finds the endpoints of the contour by finding the lowest points of the minimum bounding box, this is a key function to improve
     the logic in this function is:
@@ -164,10 +166,10 @@ def obtain_lowest_points(img,thresh):
     return img, [box[indexes[0]].tolist(),box[indexes[1]].tolist()]
 
 # Filters
-def moving_average(x, w):
+def moving_average(x: list[float] | np.ndarray, w: int) -> np.ndarray:
         return np.convolve(x, np.ones(w), 'valid') / w
 
-def convolve_average(arr, span):
+def convolve_average(arr: list[float] | np.ndarray, span: int) -> np.ndarray:
     re = np.convolve(arr, np.ones(span * 2 + 1) / (span * 2 + 1), mode="same")
 
     re[0] = np.average(arr[:span])
@@ -176,23 +178,23 @@ def convolve_average(arr, span):
         re[-i] = np.average(arr[-i - span:])
     return re
 
-def savgol(arr, span):  
+def savgol(arr: list[float] | np.ndarray, span: int) -> np.ndarray:
     return scipy.signal.savgol_filter(arr, span * 2 + 1, 0)
 
-def fft(arr, span):
+def fft(arr: list[float] | np.ndarray, span: int) -> np.ndarray:
     w = fftpack.rfft(arr)
     spectrum = w ** 2
     cutoff_idx = spectrum < (spectrum.max() * (1 - np.exp(-span / 2000)))
     w[cutoff_idx] = 0
     return fftpack.irfft(w)
 
-def passFilter(data, cutoff, fs, type="low"):
+def passFilter(data: list[float] | np.ndarray, cutoff: int, fs: float, type: str = "low") -> np.ndarray:
     b, a = signal.butter(cutoff, fs, type)
     y = signal.filtfilt(b, a, data)
     return y
 
 #Peak/Valley Finding Algorithm
-def method1(arr):
+def method1(arr: typing.Sequence[float]) -> tuple[list[float], list[float], float, float]:
     x, y = [], []
         
     topNumPercent = int(len(arr) * 0.2)
@@ -211,7 +213,7 @@ def method1(arr):
     return x, y, maxThreshold, minThreshold
 
 #######
-def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smoothening_function="ConvolveAverage", fps = 50.0, prominence = 12):
+def calc_ratio(array: list[float], plot_dir: str, filename: str, vid: np.ndarray | None = None, save: bool = True, window_size: int = 3, smoothening_function: str = "ConvolveAverage", fps: float = 50.0, prominence: float = 12) -> list[float]:
     """
     This function calculates the ratio of the strain lengths, this is a key function to improve
     the lgoic in this function is:
@@ -334,10 +336,10 @@ def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smo
     ratios.sort()
     return ratios
 
-def midpoint(point1,point2):
+def midpoint(point1: np.ndarray, point2: np.ndarray) -> np.ndarray:
     return (point1+point2)/2
 
-def smooth(points):
+def smooth(points: np.ndarray) -> np.ndarray:
     """
     Smooth a set of points by finding the midpoint between every pair
     """
@@ -346,7 +348,7 @@ def smooth(points):
         point_arr.append(midpoint(point_arr[-1],i))
     return np.array(point_arr)
 
-def get_points(vid,thresh):
+def get_points(vid: np.ndarray, thresh: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     This function finds the left and rightmost bottom points for the segmentation
     this would be a key area to improve, as the logic of separating this is not fully fleshed out
@@ -377,7 +379,7 @@ def get_points(vid,thresh):
     right_points = smooth(ok[:,1,:])
     return left_points,right_points
 
-def get_dilation(threshes,dilations = 1):
+def get_dilation(threshes: np.ndarray, dilations: int = 1) -> np.ndarray:
     """
     This function dilates the segmentation repeatedly, to improve smoothing
     """
@@ -390,7 +392,7 @@ def get_dilation(threshes,dilations = 1):
     
     return np.array(dilated)
 
-def distance_calc(x1,x2):
+def distance_calc(x1: np.ndarray, x2: np.ndarray) -> float:
     """
     This function calculates the total length of the contour, accounting for the connections it has to make.
     """
@@ -402,7 +404,7 @@ def distance_calc(x1,x2):
         total_length += dist(x2[i,0],x2[i+1,0])
     return total_length
 
-def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,plot_dir,excel_dir, window_size = 3,downsample = 2,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage", fps = 50.0, prominence = 12):
+def strain_lengths(vid: np.ndarray, threshes: np.ndarray, first_points: np.ndarray, second_points: np.ndarray, filename: str, strain_dir: str, plot_dir: str, excel_dir: str, window_size: int = 3, downsample: int = 2, contour_thickness: int = 1, point_radius: int = 0, smoothening_function: str = "ConvolveAverage", fps: float = 50.0, prominence: float = 12) -> tuple[pd.DataFrame, list[float]]:
     """
     Function for estimating the strain length. It takes in as an input:
     vid: The video, for producing graphics
@@ -538,7 +540,7 @@ def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,p
     return final,calc_ratio(length,plot_dir,filename,window_size = window_size,smoothening_function = smoothening_function, fps = fps, prominence = prominence)
 
 
-def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel_dir,dilations = 1,segmenter = None,flip=False,window_size=3, downsample = 2,output_filename = None,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage", fps = None, prominence = 12):
+def estimate_strain(input_vid: str, weights: str, segmentation_dir: str, strain_dir: str, plot_dir: str, excel_dir: str, dilations: int = 1, segmenter: Segmentation | None = None, flip: bool = False, window_size: int = 3, downsample: int = 2, output_filename: str | None = None, contour_thickness: int = 1, point_radius: int = 0, smoothening_function: str = "ConvolveAverage", fps: float | None = None, prominence: float = 12) -> list[float]:
     """ 
     Single Function to estimate the strain for any input video, this function should, in additional to calculating the strain, provide the option for saving and producing a plot of contour length by frame, a csv of contour length by frame, and a video of the contour
     The current logic for this function is:
@@ -576,7 +578,7 @@ def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel
     measure = strain_lengths(loaded_vid,thresh,left,right,output_filename,strain_dir,plot_dir,excel_dir,window_size=window_size,downsample = downsample,contour_thickness = contour_thickness, point_radius = point_radius, smoothening_function = smoothening_function, fps = fps, prominence = prominence)
     return measure[1]
 
-def segment(inp):
+def segment(inp: np.ndarray) -> None:
   """Uses pre-trained weights from EchoNet-Dynamic to
     create segmentation of left ventricular region
   Args:
@@ -605,7 +607,7 @@ def segment(inp):
   mask = inp.copy()
   mask[out] = np.array([0, 0, 255])
 
-def smooth_segmentation(x,alpha):
+def smooth_segmentation(x: np.ndarray, alpha: float) -> np.ndarray:
     """
     This function smooths the segmentation over between frames.
     The logic is:
@@ -616,7 +618,7 @@ def smooth_segmentation(x,alpha):
         final.append(alpha*i+(1-alpha)*final[-1])
     return np.array(final)
 
-def collate_fn(x):
+def collate_fn(x: list[tuple[np.ndarray, str]]) -> tuple[torch.Tensor, tuple[str, ...], list[int]]:
     x, f = zip(*x)
     i = list(map(lambda t: t.shape[1], x))
     x = torch.as_tensor(np.swapaxes(np.concatenate(x, 1), 0, 1))
@@ -626,7 +628,7 @@ class Segmentation:
     """
     This class exists to avoid having to load the segmentation model for each video.
     """
-    def __init__(self, segmentation_model_checkpoint, mean = np.array([31.834011, 31.95879,  32.082172]) , std = np.array([48.866325, 49.137333, 49.361984])):
+    def __init__(self, segmentation_model_checkpoint: str, mean: np.ndarray = np.array([31.834011, 31.95879,  32.082172]) , std: np.ndarray = np.array([48.866325, 49.137333, 49.361984])) -> None:
         self.mean = mean
         self.std = std
         self.model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained = False, aux_loss = False)
@@ -637,7 +639,7 @@ class Segmentation:
         self.model.load_state_dict(checkpoint['state_dict'])
         self.model.eval()
 
-    def single_vid_prediction(self,vid,output_folder,flip=False,alpha = 0.9):
+    def single_vid_prediction(self, vid: str, output_folder: str, flip: bool = False, alpha: float = 0.9) -> str | None:
         """
         This function exists to segment a video. the alpha value smooths the segmentation between frames, adjusting its value would increase its smoothing
         """
