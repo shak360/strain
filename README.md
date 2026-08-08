@@ -16,4 +16,4 @@ There are 4 relivent folders in the output directory, and one csv.
 2. output/Strain is the folder that contains the outline of the strain overlayed on the echocardiogram.
 3. output/Plot is the folder that contains plots of the measurement of length in each frame
 4. output/Excel is the folder that contains the measurement of length in each frame
-5. output/Measured Strain.csv is the file that contains the mean estimate of strain for each video. These estimates can be converted to traditional measurements of strain using 100*(1-estimate)
+5. output/Measured Strain.csv is the file that contains the mean estimate of strain for each video. These estimates can be converted to traditional measurements of strain using (estimate*100) - 100, which is signed: shortening gives a negative strain. (This matches the conversion in Script Test (Ishan).ipynb; the previous form of this line, 100*(1-estimate), gave the same magnitude with the opposite sign.)
