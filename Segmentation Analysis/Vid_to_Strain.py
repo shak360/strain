@@ -242,7 +242,7 @@ def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smo
     
 
     if save:
-        plt.plot(array,label = 'Moving Average: '+str(window_size),alpha=0.7)
+        plt.plot(array,label = smoothening_function+': '+str(window_size),alpha=0.7)
     # Get peaks and valleys
     #x, y_array, maxThreshold, minThreshold = method1(array)
     # x = scipy.signal.find_peaks(-np.array(array),distance=32,width=5,prominence = 12)[0] # valley
@@ -395,7 +395,7 @@ def distance_calc(x1,x2):
         total_length += dist(x2[i,0],x2[i+1,0])
     return total_length
 
-def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,plot_dir,excel_dir, window_size = 3,downsample = 2,contour_thickness = 1, point_radius = 0):
+def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,plot_dir,excel_dir, window_size = 3,downsample = 2,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage"):
     """
     Function for estimating the strain length. It takes in as an input:
     vid: The video, for producing graphics
@@ -528,10 +528,10 @@ def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,p
     savevideo(os.path.join(strain_dir,filename),video,fps=30)
     final = pd.DataFrame({'frame_num':frame_num,'x1':x1s,'y1':y1s,'error_1':error1,'x2':x2s,'y2':y2s,'error_2':error2,'length':length,'angle':angle})
     final.to_csv(os.path.join(excel_dir,filename[:-4]+'.csv'))
-    return final,calc_ratio(length,plot_dir,filename,window_size = window_size)
+    return final,calc_ratio(length,plot_dir,filename,window_size = window_size,smoothening_function = smoothening_function)
 
 
-def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel_dir,dilations = 1,segmenter = None,flip=False,window_size=3, downsample = 2,output_filename = None,contour_thickness = 1, point_radius = 0):
+def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel_dir,dilations = 1,segmenter = None,flip=False,window_size=3, downsample = 2,output_filename = None,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage"):
     """ 
     Single Function to estimate the strain for any input video, this function should, in additional to calculating the strain, provide the option for saving and producing a plot of contour length by frame, a csv of contour length by frame, and a video of the contour
     The current logic for this function is:
@@ -559,7 +559,7 @@ def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel
     thresh = get_dilation(thresh,dilations = dilations)
     
     # estimate the strain
-    measure = strain_lengths(loaded_vid,thresh,left,right,output_filename,strain_dir,plot_dir,excel_dir,window_size=window_size,downsample = downsample,contour_thickness = contour_thickness, point_radius = point_radius)
+    measure = strain_lengths(loaded_vid,thresh,left,right,output_filename,strain_dir,plot_dir,excel_dir,window_size=window_size,downsample = downsample,contour_thickness = contour_thickness, point_radius = point_radius, smoothening_function = smoothening_function)
     return measure[1]
 
 def segment(inp):
