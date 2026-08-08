@@ -9,7 +9,7 @@ setuptools.setup(
     description="Strain analysis study.",
     version="1.0",
     packages=setuptools.find_packages(),
-    install_requires=[pip
+    install_requires=[
         "click",
         "numpy",
         "pandas",
@@ -18,7 +18,7 @@ setuptools.setup(
         "opencv-python",
         "scikit-image",
         "tqdm",
-        "sklearn"
+        "scikit-learn"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
