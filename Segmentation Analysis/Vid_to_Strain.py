@@ -623,7 +623,7 @@ class Segmentation:
         self.model.load_state_dict(checkpoint['state_dict'])
         self.model.eval()
 
-    def single_vid_prediction(self,vid,output_folder,flip=True,alpha = 0.9):
+    def single_vid_prediction(self,vid,output_folder,flip=False,alpha = 0.9):
         """
         This function exists to segment a video. the alpha value smooths the segmentation between frames, adjusting its value would increase its smoothing
         """
