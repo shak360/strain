@@ -211,7 +211,7 @@ def method1(arr):
     return x, y, maxThreshold, minThreshold
 
 #######
-def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smoothening_function="ConvolveAverage"):
+def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smoothening_function="ConvolveAverage", fps = 50.0, prominence = 12):
     """
     This function calculates the ratio of the strain lengths, this is a key function to improve
     the lgoic in this function is:
@@ -290,8 +290,14 @@ def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smo
 
     # drop the first max (usually weird heartbeat). for each min, use the first max with the greater index.
     # if there are no remaining maxes, use the last max
-    x = scipy.signal.find_peaks(-np.array(array),distance=32,width=5,prominence = 12)[0] # valley
-    y_array = scipy.signal.find_peaks(np.array(array),distance=32,width=5,prominence = 12)[0] # peak
+    # distance/width were tuned as 32 and 5 frames on 50 fps videos, i.e. 0.64 s and 0.10 s.
+    # Deriving them from fps keeps the same behavior at 50 fps and stops a 30 fps video from
+    # silently forbidding any heart rate above 64 bpm. prominence is in the length curve's pixel
+    # units and therefore depends on zoom/sector depth, not fps; it stays a caller decision.
+    distance = max(1,int(round(0.64*fps)))
+    width = max(1,int(round(0.10*fps)))
+    x = scipy.signal.find_peaks(-np.array(array),distance=distance,width=width,prominence = prominence)[0] # valley
+    y_array = scipy.signal.find_peaks(np.array(array),distance=distance,width=width,prominence = prominence)[0] # peak
 
     ratios = []
     for i in range(0,len(x)): # for each valley
@@ -313,8 +319,9 @@ def calc_ratio(array,plot_dir,filename,vid=None,save = True,window_size = 3, smo
                     plt.scatter(y+x[i],array[y+x[i]],color='red')
                 y_val = array[y+x[i]]
             else: # If this is not the last valley, then the peak is the longest length within 16 frames of the valley
-                delta = min([x[i],16])
-                y = np.argmax(array[max([x[i]-16,0]):min([x[i]+16,len(array)])])
+                halfwin = max(1,int(round(0.32*fps))) # 16 frames at 50 fps
+                delta = min([x[i],halfwin])
+                y = np.argmax(array[max([x[i]-halfwin,0]):min([x[i]+halfwin,len(array)])])
                 if save:
                     plt.scatter(y+x[i]-delta,array[y+x[i]-delta],color='red')
                 y_val = array[y+x[i]-delta]
@@ -395,7 +402,7 @@ def distance_calc(x1,x2):
         total_length += dist(x2[i,0],x2[i+1,0])
     return total_length
 
-def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,plot_dir,excel_dir, window_size = 3,downsample = 2,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage"):
+def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,plot_dir,excel_dir, window_size = 3,downsample = 2,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage", fps = 50.0, prominence = 12):
     """
     Function for estimating the strain length. It takes in as an input:
     vid: The video, for producing graphics
@@ -528,10 +535,10 @@ def strain_lengths(vid,threshes,first_points,second_points,filename,strain_dir,p
     savevideo(os.path.join(strain_dir,filename),video,fps=30)
     final = pd.DataFrame({'frame_num':frame_num,'x1':x1s,'y1':y1s,'error_1':error1,'x2':x2s,'y2':y2s,'error_2':error2,'length':length,'angle':angle})
     final.to_csv(os.path.join(excel_dir,filename[:-4]+'.csv'))
-    return final,calc_ratio(length,plot_dir,filename,window_size = window_size,smoothening_function = smoothening_function)
+    return final,calc_ratio(length,plot_dir,filename,window_size = window_size,smoothening_function = smoothening_function, fps = fps, prominence = prominence)
 
 
-def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel_dir,dilations = 1,segmenter = None,flip=False,window_size=3, downsample = 2,output_filename = None,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage"):
+def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel_dir,dilations = 1,segmenter = None,flip=False,window_size=3, downsample = 2,output_filename = None,contour_thickness = 1, point_radius = 0, smoothening_function="ConvolveAverage", fps = None, prominence = 12):
     """ 
     Single Function to estimate the strain for any input video, this function should, in additional to calculating the strain, provide the option for saving and producing a plot of contour length by frame, a csv of contour length by frame, and a video of the contour
     The current logic for this function is:
@@ -543,6 +550,13 @@ def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel
     """
     if output_filename is None:
         output_filename = os.path.basename(input_vid)
+
+    if fps is None:
+        cap = cv2.VideoCapture(input_vid)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        cap.release()
+        if not fps or fps <= 0 or math.isnan(fps):
+            fps = 50.0 # the rate the peak-detection constants were tuned on
         
     if segmenter is None:
         segmenter = Segmentation(weights)
@@ -559,7 +573,7 @@ def estimate_strain(input_vid,weights,segmentation_dir,strain_dir,plot_dir,excel
     thresh = get_dilation(thresh,dilations = dilations)
     
     # estimate the strain
-    measure = strain_lengths(loaded_vid,thresh,left,right,output_filename,strain_dir,plot_dir,excel_dir,window_size=window_size,downsample = downsample,contour_thickness = contour_thickness, point_radius = point_radius, smoothening_function = smoothening_function)
+    measure = strain_lengths(loaded_vid,thresh,left,right,output_filename,strain_dir,plot_dir,excel_dir,window_size=window_size,downsample = downsample,contour_thickness = contour_thickness, point_radius = point_radius, smoothening_function = smoothening_function, fps = fps, prominence = prominence)
     return measure[1]
 
 def segment(inp):
