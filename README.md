@@ -11,9 +11,9 @@ This project documents the process to obtain deep learning derived LV global lon
 You may now run the code using the Script Test (Ishan).ipynb notebook.
 
 ## Output
-There are 4 relivent folders in the output directory, and one csv.
-1. output/Segmentation is the folder that contains the videos of the segmentation. If something went wrong, check here, as echonet may not be processing the videos correctly
-2. output/Strain is the folder that contains the outline of the strain overlayed on the echocardiogram.
-3. output/Plot is the folder that contains plots of the measurement of length in each frame
-4. output/Excel is the folder that contains the measurement of length in each frame
-5. output/Measured Strain.csv is the file that contains the mean estimate of strain for each video. These estimates can be converted to traditional measurements of strain using (estimate*100) - 100, which is signed: shortening gives a negative strain. (This matches the conversion in Script Test (Ishan).ipynb; the previous form of this line, 100*(1-estimate), gave the same magnitude with the opposite sign.)
+The four output locations are arguments to estimate_strain, and the strain itself is returned.
+1. segmentation_dir is the folder that contains the videos of the segmentation. If something went wrong, check here, as echonet may not be processing the videos correctly. This is the only one of the four directories the code creates by itself.
+2. strain_dir is the folder that contains the outline of the strain overlayed on the echocardiogram. Create it before running.
+3. plot_dir is the folder that contains plots of the measurement of length in each frame. Create it before running.
+4. excel_dir is the folder that contains a csv per video with the measurement of length in each frame. Create it before running.
+5. estimate_strain returns the per-beat estimates (ratios L_ES / L_ED) for the video rather than writing a summary csv; Script Test (Ishan).ipynb collects them into its own csv. These estimates can be converted to traditional measurements of strain using (estimate*100) - 100, which is signed: shortening gives a negative strain. (This matches the conversion in Script Test (Ishan).ipynb; the previous form of this line, 100*(1-estimate), gave the same magnitude with the opposite sign.)
