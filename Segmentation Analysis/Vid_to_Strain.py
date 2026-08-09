@@ -26,7 +26,7 @@ import datetime
 from datetime import date
 import sys
 import cv2
-import matplotlib.pyplot as plt
+from plotting import show, plot_point, plot_line, plot_raw_curve, plot_smoothed_curve, mark_valley, mark_peak, save_ratio_plot
 import config
 import loader
 import sys
@@ -38,18 +38,6 @@ import echonet
 from shutil import copyfile
 from numpy.linalg import norm
 from scipy.signal import lfilter
-
-def show(frame: np.ndarray) -> None:
-    cv2.imshow("test", frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-def plot_point(frame: np.ndarray, x: int, y: int, color: tuple[int, int, int] = (0,255,0), radius: int = 0) -> np.ndarray:
-    thickness = -1
-    return cv2.circle(frame, (x,y), radius, color, thickness)
-
-def plot_line(frame: np.ndarray, p1: np.ndarray | list[int], p2: np.ndarray | list[int], color: tuple[int, int, int] = (0,191,255), thickness: int = 1) -> np.ndarray:
-    return cv2.line(frame, (p1[0],p1[1]), (p2[0],p2[1]), color, thickness)
 
 # Gets all the contours for certain image
 def loadvideo(filename: str) -> np.ndarray:
@@ -227,8 +215,7 @@ def calc_ratio(array: list[float], plot_dir: str, filename: str, vid: np.ndarray
     return the ratios, excluding the first and last ratio
     """
     if save:
-        plt.clf()
-        plt.plot(array,label = 'Raw Data',alpha=0.7)
+        plot_raw_curve(array)
     array = [array[0]]+array+[array[-1]]
 
     if smoothening_function == "Moving Average":
@@ -244,7 +231,7 @@ def calc_ratio(array: list[float], plot_dir: str, filename: str, vid: np.ndarray
     
 
     if save:
-        plt.plot(array,label = smoothening_function+': '+str(window_size),alpha=0.7)
+        plot_smoothed_curve(array, smoothening_function+': '+str(window_size))
     # Get peaks and valleys
     #x, y_array, maxThreshold, minThreshold = method1(array)
     # x = scipy.signal.find_peaks(-np.array(array),distance=32,width=5,prominence = 12)[0] # valley
@@ -307,32 +294,31 @@ def calc_ratio(array: list[float], plot_dir: str, filename: str, vid: np.ndarray
             x_val = array[x[i]]
             y_val = array[y_array[i]]
             if save:
-                plt.scatter(x[i],x_val,color='green')
+                mark_valley(x[i],x_val)
             if save:
-                plt.scatter(y_array[i],y_val,color='red')
+                mark_peak(y_array[i],y_val)
             ratios.append(x_val/y_val) # ratio is valley/peak
 
         else: # if there isnt another peak
             if save:
-                plt.scatter(x[i],array[x[i]],color='green')
+                mark_valley(x[i],array[x[i]])
             if i==len(x)-1: # if this is the last valley, then the peak is the longest length in the remaining frames
                 y = np.argmax(array[x[i]:])
                 if save:
-                    plt.scatter(y+x[i],array[y+x[i]],color='red')
+                    mark_peak(y+x[i],array[y+x[i]])
                 y_val = array[y+x[i]]
             else: # If this is not the last valley, then the peak is the longest length within 16 frames of the valley
                 halfwin = max(1,int(round(0.32*fps))) # 16 frames at 50 fps
                 delta = min([x[i],halfwin])
                 y = np.argmax(array[max([x[i]-halfwin,0]):min([x[i]+halfwin,len(array)])])
                 if save:
-                    plt.scatter(y+x[i]-delta,array[y+x[i]-delta],color='red')
+                    mark_peak(y+x[i]-delta,array[y+x[i]-delta])
                 y_val = array[y+x[i]-delta]
             x_val = array[x[i]]
             
             ratios.append(x_val/y_val)
     if save:
-        plt.savefig(os.path.join(plot_dir,filename[:-3]+'png'))
-        plt.clf()
+        save_ratio_plot(plot_dir, filename)
     ratios.sort()
     return ratios
 
