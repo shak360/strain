@@ -1,6 +1,6 @@
-"""Weights-free unit tests for Vid_to_Strain.py.
+"""Weights-free unit tests for arc_length_strain.py.
 
-Run from this directory with: python -m pytest test_vid_to_strain.py
+Run from this directory with: python -m pytest test_arc_length_strain.py
 No model weights, videos, or network access needed.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import re
 
 os.environ.setdefault("MPLBACKEND", "Agg")  # headless-safe before pyplot import
 
-import Vid_to_Strain as V
+import arc_length_strain as V
 
 HERE = pathlib.Path(__file__).resolve().parent
 
@@ -84,6 +84,11 @@ def test_flip_defaults_agree():
 
 
 # --- repo-level regression guards ---
+
+def test_vid_to_strain_shim_still_works():
+    import Vid_to_Strain
+    assert Vid_to_Strain.estimate_strain is V.estimate_strain
+    assert Vid_to_Strain.calc_ratio is V.calc_ratio
 
 def test_setup_py_parses():
     ast.parse((HERE.parent / "setup.py").read_text())
